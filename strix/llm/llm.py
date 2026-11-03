@@ -61,6 +61,7 @@ class RequestStats:
 class LLM:
     def __init__(self, config: LLMConfig, agent_name: str | None = None):
         self.config = config
+        self._prompt_template_name = agent_name
         self.agent_name = agent_name
         self.agent_id: str | None = None
         self._active_skills: list[str] = list(config.skills or [])
@@ -69,7 +70,7 @@ class LLM:
         )
         self._total_stats = RequestStats()
         self.memory_compressor = MemoryCompressor(model_name=config.litellm_model)
-        self.system_prompt = self._load_system_prompt(agent_name)
+        self.system_prompt = self._load_system_prompt(self._prompt_template_name)
 
         reasoning = Config.get("strix_reasoning_effort")
         if reasoning:
@@ -132,7 +133,7 @@ class LLM:
         if not added:
             return []
 
-        updated_prompt = self._load_system_prompt(self.agent_name)
+        updated_prompt = self._load_system_prompt(self._prompt_template_name)
         if updated_prompt:
             self.system_prompt = updated_prompt
 
@@ -146,7 +147,7 @@ class LLM:
 
     def set_system_prompt_context(self, context: dict[str, Any] | None) -> None:
         self._system_prompt_context = dict(context or {})
-        updated_prompt = self._load_system_prompt(self.agent_name)
+        updated_prompt = self._load_system_prompt(self._prompt_template_name)
         if updated_prompt:
             self.system_prompt = updated_prompt
 
