@@ -179,8 +179,6 @@ Business logic security is the enforcement of domain invariants under adversaria
 
 ## BELUGA E-Commerce Checkout Definition
 
-The following complete model definition is included for the controlled e-commerce scan. Apply each invariant only when its required variables are present in the application. A finding requires a demonstrated violation in the final persisted order, payment, or stock state; a request value or display value alone is insufficient.
-
 ```toml
 # E-Commerce Checkout Model Definition
 # Complete data-channel definition: metadata, constants, variables, and
