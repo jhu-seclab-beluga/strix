@@ -167,7 +167,7 @@ sudo -E -u pentester \
   --timeout="$TOOL_SERVER_TIMEOUT" > "$TOOL_SERVER_LOG" 2>&1 &
 
 for i in {1..10}; do
-  if curl -s "http://127.0.0.1:$TOOL_SERVER_PORT/health" | grep -q '"status":"healthy"'; then
+  if curl --noproxy '*' -s "http://127.0.0.1:$TOOL_SERVER_PORT/health" | grep -q '"status":"healthy"'; then
     echo "✅ Tool server healthy on port $TOOL_SERVER_PORT"
     break
   fi
