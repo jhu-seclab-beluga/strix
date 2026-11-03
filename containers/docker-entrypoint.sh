@@ -166,12 +166,12 @@ sudo -E -u pentester \
   --port="$TOOL_SERVER_PORT" \
   --timeout="$TOOL_SERVER_TIMEOUT" > "$TOOL_SERVER_LOG" 2>&1 &
 
-for i in {1..10}; do
+for i in {1..30}; do
   if curl --noproxy '*' -s "http://127.0.0.1:$TOOL_SERVER_PORT/health" | grep -q '"status":"healthy"'; then
     echo "✅ Tool server healthy on port $TOOL_SERVER_PORT"
     break
   fi
-  if [ $i -eq 10 ]; then
+  if [ $i -eq 30 ]; then
     echo "ERROR: Tool server failed to become healthy"
     echo "=== Tool server log ==="
     cat "$TOOL_SERVER_LOG" 2>/dev/null || echo "(no log)"
