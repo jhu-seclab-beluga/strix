@@ -1,4 +1,6 @@
 import asyncio
+import inspect
+import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
@@ -24,6 +26,7 @@ from strix.utils.resource_paths import get_strix_resource_path
 
 litellm.drop_params = True
 litellm.modify_params = True
+logger = logging.getLogger(__name__)
 
 
 class LLMRequestFailedError(Exception):
@@ -176,24 +179,39 @@ class LLM:
         self._total_stats.requests += 1
         response = await acompletion(**self._build_completion_args(messages), stream=True)
 
-        async for chunk in response:
-            chunks.append(chunk)
-            if done_streaming:
-                done_streaming += 1
-                if getattr(chunk, "usage", None) or done_streaming > 5:
-                    break
-                continue
-            delta = self._get_chunk_content(chunk)
-            if delta:
-                accumulated += delta
-                if "</function>" in accumulated or "</invoke>" in accumulated:
-                    end_tag = "</function>" if "</function>" in accumulated else "</invoke>"
-                    pos = accumulated.find(end_tag)
-                    accumulated = accumulated[: pos + len(end_tag)]
-                    yield LLMResponse(content=accumulated)
-                    done_streaming = 1
+        try:
+            async for chunk in response:
+                chunks.append(chunk)
+                if done_streaming:
+                    done_streaming += 1
+                    if getattr(chunk, "usage", None) or done_streaming > 5:
+                        break
                     continue
-                yield LLMResponse(content=accumulated)
+                delta = self._get_chunk_content(chunk)
+                if delta:
+                    accumulated += delta
+                    if "</function>" in accumulated or "</invoke>" in accumulated:
+                        end_tag = "</function>" if "</function>" in accumulated else "</invoke>"
+                        pos = accumulated.find(end_tag)
+                        accumulated = accumulated[: pos + len(end_tag)]
+                        yield LLMResponse(content=accumulated)
+                        done_streaming = 1
+                        continue
+                    yield LLMResponse(content=accumulated)
+        finally:
+            stream = (
+                response
+                if hasattr(response, "aclose")
+                else getattr(response, "completion_stream", None)
+            )
+            close = getattr(stream, "aclose", None) or getattr(stream, "close", None)
+            if close:
+                try:
+                    result = close()
+                    if inspect.isawaitable(result):
+                        await result
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Failed to close model stream: %s", type(exc).__name__)
 
         if chunks:
             self._update_usage_stats(stream_chunk_builder(chunks))
